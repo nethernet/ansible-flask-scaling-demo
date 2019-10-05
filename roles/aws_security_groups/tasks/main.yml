@@ -1,0 +1,71 @@
+---
+- name: Get my current IP address
+  uri:
+    url: http://checkip.amazonaws.com/
+    return_content: yes
+  register: my_ip
+
+- name: Create SSH security group
+  ec2_group:
+    name: "{{ aws_network_name }}-ssh"
+    description: SSH security group for my current IP
+    region: "{{ region }}"
+    vpc_id: "{{ vpc_facts['vpcs'][0]['id'] }}"
+    rules:
+      - proto: tcp
+        from_port: 22
+        to_port: 22
+        cidr_ip: "{{ my_ip.content | replace('\n', '') }}/32"
+  register: ssh_sg
+
+- name: ssh security group id
+  debug: 
+    var: ssh_sg['group_id']
+
+- name: Create Web Security group
+  ec2_group:
+    name: "{{ aws_network_name }}-web"
+    state: present
+    description: Security group for Web Servers
+    vpc_id: "{{ vpc_facts['vpcs'][0]['id'] }}"
+    region: "{{ region }}"
+    rules:
+      - proto: tcp
+        from_port: 80
+        to_port: 80
+        cidr_ip: 0.0.0.0/0
+      - proto: tcp
+        from_port: 443
+        to_port: 443
+        cidr_ip: 0.0.0.0/0
+      - proto: tcp
+        from_port: 22
+        to_port: 22
+        group_id: "{{ ssh_sg['group_id'] }}"
+  register: web_sg
+
+- name: Web Security group ID
+  debug: 
+    var: web_sg['group_id']
+
+- name: MySQL Security group
+  ec2_group:
+    name: "{{ aws_network_name }}-private"
+    state: present
+    description: Security group for private access
+    vpc_id: "{{ vpc_facts['vpcs'][0]['id'] }}"
+    region: "{{ region }}"
+    rules:
+      - proto: tcp
+        from_port: 22
+        to_port: 22
+        group_id: "{{ ssh_sg['group_id'] }}"
+      - proto: tcp
+        from_port: 3306
+        to_port: 3306
+        group_id: "{{ web_sg['group_id'] }}"
+  register: mysql_sg
+
+- name: MySQL Security group ID
+  debug: 
+    var: mysql_sg['group_id']  

@@ -1,0 +1,28 @@
+---
+
+- name: Gather RDS instances facts
+  rds_instance_facts:
+    db_instance_identifier: "{{ aws_network_name }}-{{ rds_engine|lower }}-rds"
+  delegate_to: localhost
+  register: rds_facts
+
+- name: Create user defined databases
+  mysql_db:
+    name: "{{ flaskapp_app_db }}"
+    login_user: "{{ rds_user }}"
+    login_password: "{{ rds_pass }}"
+    login_host: "{{ item.endpoint.address }}"
+    state: present
+  with_items: "{{ rds_facts.instances }}"
+
+- name: Create application database user
+  mysql_user:
+     login_user: "{{ rds_user }}"
+     login_password: "{{ rds_pass }}"
+     login_host: "{{ item.endpoint.address }}"
+     name: "{{ rds_db_user }}"
+     password: "{{ rds_db_pass }}"
+     host: "%"
+     priv: "{{ flaskapp_app_db }}.*:ALL"
+     state: present
+  with_items: "{{ rds_facts.instances }}"

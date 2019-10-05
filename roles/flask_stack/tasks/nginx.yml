@@ -1,0 +1,61 @@
+---
+
+- name: Generate Nginx TLS certificates and keys
+  block:
+    - name: Generate OpenSSL private key
+      openssl_privatekey: 
+        path: "./files/{{ flaskapp_app_name }}.key"
+
+    - name: Generate OpenSSL Certificate Signing Request
+      openssl_csr: 
+        path: "./files/{{ flaskapp_app_name }}.csr"  
+        privatekey_path: "files/{{ flaskapp_app_name }}.key" 
+        common_name: "www.{{ flaskapp_app_name }}.dev"
+
+    - name: Generate Self-signed certificate
+      openssl_certificate: 
+        path: "./files/{{ flaskapp_app_name }}.crt"
+        privatekey_path: "files/{{ flaskapp_app_name }}.key"
+        csr_path: "./files/{{ flaskapp_app_name }}.csr"
+        provider: selfsigned
+  delegate_to: localhost
+
+- name: Create directory to store SSL certificate in
+  file:
+    path: "{{ flaskapp_nginx_ssl_directory }}"
+    state: directory
+    owner: root
+    group: root
+    
+- name: Copy SSL certificate and key files
+  copy:
+    src: "./files/{{ flaskapp_app_name }}.{{ item }}"
+    dest: "{{ flaskapp_nginx_ssl_directory }}/{{ flaskapp_app_name }}.{{ item }}"
+    owner: root
+    group: root
+  with_items:
+    - key
+    - crt
+ 
+- name: Check if httpd_t domain is permissive
+  shell: semodule -l | grep permissive_httpd_t
+  failed_when: false
+  changed_when: false
+  register: semodule_result  
+
+- name: Set permisive domain for Nginx
+  command: semanage permissive -a httpd_t
+  changed_when: semodule_result.rc == 1
+
+- name: Update default Nginx configuration
+  template: 
+    src: nginx.conf.j2
+    dest: "{{ flaskapp_nginx_config }}"
+    validate: nginx -c %s -t
+  notify: restart nginx
+
+- name: Create nginx virtual host for application
+  template: 
+    src: app_nginx.conf.j2
+    dest: "{{ flaskapp_nginx_vhost_directory }}/{{ flaskapp_app_name }}.conf"
+  notify: restart nginx

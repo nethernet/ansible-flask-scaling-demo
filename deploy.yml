@@ -1,0 +1,25 @@
+---
+
+- hosts: localhost
+  gather_facts: no
+  connection: local
+  pre_tasks:
+    - name: create key pair using provided key_material
+      ec2_key:
+        name: "{{ keypair }}"
+        key_material: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+
+  roles:
+    - role: aws_vpc
+    - role: aws_security_groups
+    - role: aws_rds_db
+    - role: aws_ec2_instances
+      vars:
+        app_name: <your_app_name>
+        startindex: "1"
+
+- hosts: <your_app_name>
+  remote_user: centos
+  become: true
+  roles:
+    - role: flask_stack

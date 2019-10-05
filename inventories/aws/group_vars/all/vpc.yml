@@ -1,0 +1,6 @@
+# VPC Variables
+aws_network_name: <your_network_name>
+vpc_cidr: 10.10.0.0/16
+public_subnet_cidr: 10.10.0.0/24
+private_subnet_1_cidr: 10.10.1.0/24
+private_subnet_2_cidr: 10.10.2.0/24

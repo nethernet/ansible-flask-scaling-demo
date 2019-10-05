@@ -1,0 +1,56 @@
+---
+
+- name: Add application deployment key
+  copy: 
+    content: "{{ deployment_key }}"
+    dest: "{{ flaskapp_deployment_key_directory }}/{{ flaskapp_deployment_key }}"
+    owner: root
+    group: root
+    mode: '0600'
+
+- name: Ensure app root directory is present
+  file: 
+    path: "{{ flaskapp_app_directory }}"
+    state: directory
+    owner: uwsgi
+    group: nginx
+
+
+- name: Ensure app log directory is present
+  file: 
+    path: "{{ flaskapp_app_log_directory }}"
+    state: directory
+    owner: uwsgi
+    group: nginx
+
+- name: Checkout the application source code
+  git: 
+    repo: "{{ flaskapp_app_repository }}"
+    dest: "{{ flaskapp_app_directory }}"
+    accept_hostkey: true
+    key_file: "{{ flaskapp_deployment_key_directory }}/{{ flaskapp_deployment_key }}"
+    force: yes
+  when: flaskapp_app_repository is defined and flaskapp_app_directory
+
+- name: Recursively change ownership of application directory
+  file:
+    path: "{{ flaskapp_app_directory }}"
+    state: directory
+    recurse: yes
+    owner: uwsgi
+    group: nginx
+  changed_when: false
+
+- name: Gather RDS instances facts
+  rds_instance_facts:
+    db_instance_identifier: "{{ aws_network_name }}-{{ rds_engine|lower }}-rds"
+  delegate_to: localhost
+  register: rds_facts
+
+- name: Add application db connection string to dotenv file
+  copy:
+    content: "SQLALCHEMY_DATABASE_URI = 'mysql://{{ rds_db_user }}:{{ rds_db_pass }}@{{ item.endpoint.address }}/{{ flaskapp_app_db }}'"
+    dest: "{{ flaskapp_app_directory }}/.env"
+    owner: uwsgi
+    group: nginx
+  with_items: "{{ rds_facts.instances }}"

@@ -1,0 +1,16 @@
+---
+
+- include: prerequisites.yml
+  tags: [python-setup]
+
+- include: rdsdb.yml
+  tags: [database-setup]
+
+- include: deploy.yml
+  tags: [flaskapp-setup]
+
+- include: uwsgi.yml
+  tags: [uwsgi-setup]
+
+- include: nginx.yml
+  tags: [nginx-setup]

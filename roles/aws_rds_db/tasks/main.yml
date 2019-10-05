@@ -1,0 +1,71 @@
+- name: "Get Subnet ID for {{ aws_network_name }}-private-1"
+  ec2_vpc_subnet_facts:
+    region: "{{ region }}"
+    filters:
+      "tag:Name": "{{ aws_network_name }}-private-1"
+  register: subnet_private_1
+
+- name: "Get Subnet ID for {{ aws_network_name }}-private-2"
+  ec2_vpc_subnet_facts:
+    region: "{{ region }}"
+    filters:
+      "tag:Name": "{{ aws_network_name }}-private-2"
+  register: subnet_private_2
+
+- name: Get MySQL SG ID
+  ec2_group_facts:
+    region: "{{ region }}"
+    filters:
+      group-name: "{{ aws_network_name }}-private"
+  register: private_sg
+
+- name: Build RDS Subnet Group
+  rds_subnet_group:
+    region: "{{ region }}"
+    state: present
+    name: "{{ aws_network_name }}-rds-subnetgroup"
+    description: Subnet Group for {{ aws_network_name }}
+    subnets:
+      - "{{ subnet_private_1['subnets'][0]['id'] }}"
+      - "{{ subnet_private_2['subnets'][0]['id'] }}"
+  register: subnet_group_results
+
+- name: Subnet group results
+  debug:
+    var: subnet_group_results
+
+- name: Build MySQL Parameters
+  rds_param_group:
+    state: present
+    name: "{{ rds_engine|lower }}-parameters"
+    description: "{{ aws_network_name }} {{ rds_engine }} Parameters"
+    engine: "{{ rds_engine|lower }}{{ rds_engine_version }}"
+    immediate: no
+    region: "{{ region }}"
+    params: "{{ item }}"
+  with_items: "{{ rds_parameters }}"
+
+- name: Build RDS Instance
+  rds:
+    command: create
+    instance_name: "{{ aws_network_name }}-{{ rds_engine|lower }}-rds"
+    db_engine: "{{ rds_engine }}"
+    size: "{{ rds_size_gb }}"
+    instance_type: "db.{{ instance_type }}"
+    username: "{{ rds_user }}"
+    password: "{{ rds_pass }}"
+    region: "{{ region }}"
+    subnet: "{{ aws_network_name }}-rds-subnetgroup"
+    parameter_group: "{{ rds_engine|lower }}-parameters"
+    engine_version: "{{ rds_engine_version }}"
+    vpc_security_groups: "{{ private_sg['security_groups'][0]['group_id'] }}"
+    wait: yes
+    wait_timeout: 1800
+    multi_zone: yes
+    tags:
+      Name: "{{ aws_network_name }}-rds-{{ rds_engine|lower }}{{ rds_engine_version }}"
+  register: rds_results
+
+- name: RDS rds results
+  debug:
+    var: rds_results

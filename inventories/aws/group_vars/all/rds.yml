@@ -1,0 +1,48 @@
+# RDS instance super user name
+rds_user: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          <vault_hash_here>
+# RDS instance super user password
+rds_pass: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          <vault_hash_here>
+# RDS database user name
+rds_db_user: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          <vault_hash_here>
+# RDS database user password
+rds_db_pass: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          <vault_hash_here>
+# RDS MySQL instance optimisation options
+rds_instance_type: db.t2.micro
+rds_size_gb: "20"
+rds_engine: MySQL
+rds_engine_version: "5.7"
+rds_parameters:
+  - innodb_file_per_table: "1"
+  - innodb_buffer_pool_size: "256M"
+  - innodb_log_buffer_size: "8M"
+  - innodb_flush_log_at_trx_commit: "1"
+  - innodb_lock_wait_timeout: "50"
+  - innodb_flush_method: "O_DIRECT"
+  - innodb_large_prefix: "1"
+  - innodb_file_format: "barracuda"
+  - slow-query-log-file: "mariadb-slow.log"
+  - key_buffer_size: "256M"
+  - max_allowed_packet: "64M"
+  - table_open_cache: "256"
+  - sort_buffer_size: "1M"
+  - read_buffer_size: "1M"
+  - read_rnd_buffer_size: "4M"
+  - myisam_sort_buffer_size: "64M"
+  - thread_cache_size: "8"
+  - query_cache_type: "0"
+  - query_cache_size: "16M"
+  - query_cache_limit: "1M"
+  - max_connections: "151"
+  - tmp_table_size: "16M"
+  - max_heap_table_size: "16M"
+  - group_concat_max_len: "1024"
+  - join_buffer_size: "262144"
+

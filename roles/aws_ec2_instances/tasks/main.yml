@@ -1,0 +1,84 @@
+---
+
+- name: Get Public Subnet ID
+  ec2_vpc_subnet_facts:
+    region: "{{ region }}"
+    filters:
+      "tag:Name": "{{ aws_network_name }}-public"
+  register: public_subnet
+
+- name: Subnet ID
+  debug:
+    var: public_subnet['subnets'][0]['id']
+
+- name: Gather facts about CentOS 7 AMIs published by CentOS ORG
+  ec2_ami_facts:
+    owners: "aws-marketplace"
+    filters:
+      product-code: "aw0evgkw8e5c1q413zgy5pjce"
+  register: amis
+
+- name: Now get the latest one
+  set_fact:
+    latest_ami: "{{ amis.images | selectattr('name', 'defined') | sort(attribute='creation_date') | last }}"
+
+- name: Launch new instance
+  ec2:
+    region: "{{ region }}"
+    key_name: "{{ keypair }}"
+    zone: "{{ zone }}"
+    group: ["{{ aws_network_name }}-ssh","{{ aws_network_name }}-web"]
+    image: "{{ latest_ami.image_id }}"
+    instance_type: "{{ instance_type }}"
+    instance_tags:
+      Application: "{{ app_name }}"
+    exact_count: "{{ instances_count }}"
+    count_tag:
+      Application: "{{ app_name }}"
+    volumes: "{{ volumes }}"
+    vpc_subnet_id: "{{ public_subnet['subnets'][0]['id'] }}"
+    assign_public_ip: yes
+    wait: yes
+    monitoring: yes
+  register: ec2
+
+- debug: "var=ec2"
+
+- name: Add new instances to host group
+  add_host:
+    name: "{{ item.public_ip }}"
+    groups: "{{ app_name }}"
+  with_items: "{{ ec2.tagged_instances }}"
+  changed_when: false
+
+- name: Wait for instance to boot
+  wait_for:
+    host: "{{ item.public_ip }}"
+    port: 22
+    timeout: 300
+    state: started
+  with_items: "{{ ec2.tagged_instances }}"
+
+
+- name: Generate sequence ID for tagging
+  debug: msg="{{ item }}"
+  no_log: true
+  with_sequence: start="{{ startindex }}" end="{{ instances_count }}" format=%02d
+  register: sequence
+
+- name: Tag instances
+  no_log: true
+  ec2_tag:
+    region: "{{ region }}"
+    resource: "{{ item.0.id }}"
+    tags:
+        Name: "{{ aws_network_name }}-{{ app_name }}-{{ item.1.msg }}"
+  with_together:
+    - "{{ ec2.tagged_instances }}"
+    - "{{ sequence.results }}"
+
+- name: Add EC2 instance to known hosts
+  known_hosts:
+    name: "{{ item.public_ip }}"
+    key: "{{ lookup('pipe', 'ssh-keyscan -t rsa ' + item.public_ip) }}"
+  with_items: "{{ ec2.tagged_instances }}"

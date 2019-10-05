@@ -1,0 +1,24 @@
+server {
+    listen 80;
+    server_name {{ flaskapp_app_name }}.dev www.{{ flaskapp_app_name }}.dev;
+
+    location / {
+        return 301 https://$server_name$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name {{ flaskapp_app_name }}.dev www.{{ flaskapp_app_name }}.dev;
+    ssl_certificate {{ flaskapp_nginx_ssl_directory }}/{{ flaskapp_app_name }}.crt;
+    ssl_certificate_key {{ flaskapp_nginx_ssl_directory }}/{{ flaskapp_app_name }}.key;
+
+    location / {
+        include uwsgi_params;
+        uwsgi_pass unix:{{ flaskapp_app_directory }}/uwsgi.sock;
+    }
+
+    location /static {
+        alias  {{ flaskapp_app_directory }}/static;
+    }
+}

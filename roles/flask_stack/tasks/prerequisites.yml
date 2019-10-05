@@ -1,0 +1,15 @@
+---
+
+- name: Install Epel repository
+  yum:
+    name: epel-release
+    state: present
+
+- name: Install system packages required to build/run application
+  yum: 
+    name: "{{ flaskapp_app_packages }}"
+    state: present
+
+- name: Install Flask application requirements
+  pip:
+    name: "{{ flaskapp_app_requirements }}"

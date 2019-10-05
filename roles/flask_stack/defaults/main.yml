@@ -1,0 +1,63 @@
+---
+
+# The list of system packages required to build/run application
+flaskapp_app_packages:
+  - python2-pip
+  - python-devel
+  - gcc
+  - git
+  - mariadb-devel
+  - uwsgi
+  - uwsgi-plugin-python2
+  - uwsgi-logger-file
+  - nginx
+
+# The list of application requirements
+flaskapp_app_requirements:
+  - flask
+  - wtforms
+  - Flask-WTF
+  - flask-sqlalchemy
+  - mysql-python
+  - python-dotenv
+
+# The name of the application, uses to create application directory, e.g.
+# should be a shorthand, lowercase and not contain any whitespaces.
+flaskapp_app_name: <your_flask_app_name>
+
+# The directory to keep application source code.
+flaskapp_app_directory: "/opt/flask/{{ flaskapp_app_name }}"
+
+# The directory to keep application logs.
+flaskapp_app_log_directory: "/var/log/{{ flaskapp_app_name }}"
+
+# The remote git repository to pull application code from, for example:
+# git@github.com:nethernet/flaskapp.git
+flaskapp_app_repository: <your_flask_app_git_repository>
+
+# The directory to keep uwsgi configuration.
+flaskapp_uwsgi_directory: "/etc/uwsgi.d"
+
+# The directory for systemd service files.
+flaskapp_service_directory: "/usr/lib/systemd/system"
+
+# The main Nginx configuration file.
+flaskapp_nginx_config: "/etc/nginx/nginx.conf"
+
+# The Nginx vhost configuration directory
+flaskapp_nginx_vhost_directory: "/etc/nginx/conf.d"
+
+# The Nginx SSL certificate directory
+flaskapp_nginx_ssl_directory: "/etc/nginx/ssl"
+
+# The directory to keep deployment key.
+flaskapp_deployment_key_directory: "~/.ssh"
+
+# Deployment identity key
+flaskapp_deployment_key: "git_deployment_key"
+
+# Deployment bashrc file.
+flaskapp_bashrc: "~/.bashrc"
+
+# The application database name.
+flaskapp_app_db: <your_flask_app_db_name>

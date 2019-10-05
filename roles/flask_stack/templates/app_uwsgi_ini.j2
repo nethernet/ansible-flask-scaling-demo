@@ -1,0 +1,15 @@
+[uwsgi]
+socket = {{ flaskapp_app_directory }}/uwsgi.sock
+chmod-socket = 666
+chdir = {{ flaskapp_app_directory }}
+master = true
+module = <your_app_module>
+processes = 1
+threads = 1
+vacuum = true
+die-on-term = true
+uid = uwsgi
+gid = nginx
+plugins = python,logfile
+logger = file:{{ flaskapp_app_log_directory }}/uwsgi.log
+
