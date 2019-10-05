@@ -12,3 +12,4 @@ volumes:
 deployment_key: !vault |
           $ANSIBLE_VAULT;1.1;AES256
           <vault_hash_here>
+startindex: "1"

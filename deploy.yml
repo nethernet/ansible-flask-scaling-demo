@@ -16,7 +16,6 @@
     - role: aws_ec2_instances
       vars:
         app_name: <your_app_name>
-        startindex: "1"
 
 - hosts: <your_app_name>
   remote_user: centos
